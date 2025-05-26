@@ -3,7 +3,7 @@ const htmlContent = `
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>The Natural Energy Company - Start Your Solar Journey</title>
+<title>The Natural Energy Company - Interactive Solar Mapping Tool</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
   body { font-family: 'Times New Roman', serif; background: #ffffff; color: #32624a; margin: 0; }
@@ -76,7 +76,7 @@ function initMap() {
   });
 }
 
-window.initMap = initMap;
+window.initMap = initMap; // This line ensures Google Maps can call initMap globally!
 
 function searchPostcode() {
   const postcode = document.getElementById('postcodeInput').value;
@@ -151,4 +151,5 @@ function calculateResults() {
 </body>
 </html>
 `;
+
 console.log(htmlContent);
