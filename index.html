@@ -7,8 +7,8 @@
 <style>
   body { font-family: 'Times New Roman', serif; background: #ffffff; color: #32624a; margin: 0; }
   header { background: #32624a; color: #ffffff; padding: 20px; text-align: center; position: relative; }
-  header img { height: 50px; }
-  header h1 { font-family: 'Century Gothic', sans-serif; margin: 10px 0; }
+  header img { height: 50px; vertical-align: middle; }
+  header h1 { display: inline-block; font-family: 'Century Gothic', sans-serif; margin: 10px 0 10px 10px; vertical-align: middle; }
   #postcode-container { display: flex; justify-content: center; align-items: center; flex-direction: column; margin: 20px auto; }
   #postcode-container input { padding: 8px; font-size: 16px; border: 1px solid #4b7f89; border-radius: 4px; }
   #postcode-container button { margin-top: 10px; padding: 8px 12px; background: #60894b; color: #ffffff; border: none; border-radius: 4px; cursor: pointer; }
@@ -22,7 +22,7 @@
 <body>
 
 <header>
-  <img src="https://raw.githubusercontent.com/DavidMcLaren94/Solar-Test-3/main/NEC%20Logo%20Transparent.png" alt="The Natural Energy Company">
+  <img src="https://raw.githubusercontent.com/DavidMcLaren94/Solar-Test-3/main/NEC%20Logo%20Transparent.png" alt="The Natural Energy Company Logo">
   <h1>Interactive Solar Mapping Tool</h1>
 </header>
 
@@ -47,9 +47,22 @@
 
 <!-- Turf.js must come BEFORE your main JS -->
 <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
-
 <script>
 var map, drawingManager, roofPolygon;
+
+// Zone 15 - Dundee, 35° pitch, kWh/kWp by orientation (degrees from south)
+const irradianceTable35 = {
+  0: 766.17, 5: 765.97, 10: 765.09, 15: 763.53, 20: 761.30, 25: 758.41,
+  30: 754.88, 35: 750.72, 40: 745.95, 45: 740.61, 50: 734.70, 55: 728.27,
+  60: 721.33, 65: 713.92, 70: 706.08, 75: 697.86, 80: 689.30, 85: 680.46, 90: 671.39
+};
+const validOrientations = Object.keys(irradianceTable35).map(Number);
+
+function nearestOrientation(degrees) {
+  return validOrientations.reduce((prev, curr) =>
+    Math.abs(curr - degrees) < Math.abs(prev - degrees) ? curr : prev
+  );
+}
 
 var initMap = function() {
   map = new google.maps.Map(document.getElementById('map'), {
@@ -115,34 +128,35 @@ var calculateResults = function() {
   const numPanels = Math.floor(area / panelArea);
   const systemSize = (numPanels * panelWattage) / 1000;
 
-  const centroid = turf.centroid(polygon).geometry.coordinates;
-  const lon = centroid[0];
-  const lat = centroid[1];
+  // Calculate roof orientation from first edge (degrees from south, down the screen is 0°)
+  const coords = polygon.geometry.coordinates[0];
+  const firstPoint = turf.point(coords[0]);
+  const secondPoint = turf.point(coords[1]);
+  let bearing = turf.bearing(firstPoint, secondPoint); // -180 to 180, from north
 
-  fetch(`/api/solcast?lat=${lat}&lon=${lon}`)
-    .then(response => response.json())
-    .then(data => {
-      const dailyRadiation = data.dailyRadiation;
-      const annualRadiation = dailyRadiation * 365;
-      const annualGen = systemSize * annualRadiation;
-      const estimatedSavings = annualGen * 0.3;
-      const installationCost = systemSize * 900;
-      const paybackYears = (installationCost / estimatedSavings).toFixed(1);
+  let degreesFromSouth = Math.abs(bearing - 180);
+  degreesFromSouth = degreesFromSouth % 360;
+  if (degreesFromSouth > 180) degreesFromSouth = 360 - degreesFromSouth;
 
-      document.getElementById('results').innerHTML = `
-        <h3>Results</h3>
-        <p>Number of panels: ${numPanels}</p>
-        <p>System size: ${systemSize.toFixed(1)} kWp</p>
-        <p>Estimated annual generation: ${annualGen.toFixed(0)} kWh</p>
-        <p>Estimated annual savings: £${estimatedSavings.toFixed(0)}</p>
-        <p>Estimated installation cost: £${installationCost.toFixed(0)}</p>
-        <p>Estimated payback period: ${paybackYears} years</p>
-      `;
-    })
-    .catch(err => {
-      console.error('Error fetching data:', err);
-      alert('Error fetching solar data.');
-    });
+  let lookupDeg = nearestOrientation(degreesFromSouth);
+
+  // Get kWh/kWp from table for this orientation (always pitch 35)
+  const irradiance = irradianceTable35[lookupDeg];
+  const annualGen = systemSize * irradiance;
+  const estimatedSavings = annualGen * 0.3;
+  const installationCost = systemSize * 900;
+  const paybackYears = (installationCost / estimatedSavings).toFixed(1);
+
+  document.getElementById('results').innerHTML = `
+    <h3>Results</h3>
+    <p>Number of panels: ${numPanels}</p>
+    <p>System size: ${systemSize.toFixed(1)} kWp</p>
+    <p>Orientation (from south): ${lookupDeg}°</p>
+    <p>Estimated annual generation: ${annualGen.toFixed(0)} kWh</p>
+    <p>Estimated annual savings: £${estimatedSavings.toFixed(0)}</p>
+    <p>Estimated installation cost: £${installationCost.toFixed(0)}</p>
+    <p>Estimated payback period: ${paybackYears} years</p>
+  `;
 };
 
 // Make functions globally accessible for Google Maps callback
