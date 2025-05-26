@@ -45,8 +45,8 @@
 
 <div id="results"></div>
 
-<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAppVhgKsqxYeM3ckw3pWkTimTHgPFgAt4&libraries=drawing&callback=initMap" async defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
+
 <script>
 let map, drawingManager, roofPolygon;
 
@@ -144,13 +144,14 @@ function calculateResults() {
     });
 }
 
-// ⚠️ Make sure these functions are globally accessible
+// Make functions globally accessible
 window.initMap = initMap;
 window.searchPostcode = searchPostcode;
 window.calculateResults = calculateResults;
 </script>
 
+<!-- Google Maps API script at the END -->
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAppVhgKsqxYeM3ckw3pWkTimTHgPFgAt4&libraries=drawing&callback=initMap" async defer></script>
+
 </body>
 </html>
-
-
