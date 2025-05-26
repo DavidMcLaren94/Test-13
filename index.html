@@ -1,0 +1,123 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>The Natural Energy Company - Interactive Solar Mapping Tool</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  body { font-family: Arial, sans-serif; background: #ffffff; color: #32624a; margin: 0; }
+  header { background: #32624a; color: #ffffff; padding: 10px; text-align: center; }
+  header img { height: 50px; }
+  #map { height: 500px; }
+  #info { padding: 15px; background: #60894b; color: #ffffff; margin: 10px; border-radius: 4px; }
+  #results { background: #ffffff; color: #32624a; padding: 15px; border: 1px solid #585858; border-radius: 4px; margin: 10px; }
+  select, button { margin-top: 10px; }
+</style>
+</head>
+<body>
+
+<header>
+  <img src="https://raw.githubusercontent.com/DavidMcLaren94/Solar-Test-3/main/NEC%20Logo%20Transparent.png" alt="The Natural Energy Company">
+  <h1>Interactive Solar Mapping Tool</h1>
+</header>
+
+<div id="map"></div>
+
+<div id="info">
+  <label for="panelSelect">Select Panel Type:</label>
+  <select id="panelSelect">
+    <option value="450" data-width="1.1" data-height="1.9">450W (1.1m x 1.9m)</option>
+    <option value="500" data-width="1.15" data-height="2.0">500W (1.15m x 2.0m)</option>
+    <option value="550" data-width="1.2" data-height="2.1">550W (1.2m x 2.1m)</option>
+  </select>
+  <button onclick="calculateResults()">Calculate Output</button>
+</div>
+
+<div id="results"></div>
+
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAppVhgKsqxYeM3ckw3pWkTimTHgPFgAt4&libraries=drawing"></script>
+<script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
+<script>
+let map, drawingManager, roofPolygon;
+
+function initMap() {
+  map = new google.maps.Map(document.getElementById('map'), {
+    center: { lat: 56.440240, lng: -2.940967 },
+    zoom: 20,
+    mapTypeId: 'satellite'
+  });
+
+  drawingManager = new google.maps.drawing.DrawingManager({
+    drawingMode: google.maps.drawing.OverlayType.POLYGON,
+    drawingControl: true,
+    drawingControlOptions: {
+      position: google.maps.ControlPosition.TOP_CENTER,
+      drawingModes: ['polygon']
+    },
+    polygonOptions: { editable: true }
+  });
+  drawingManager.setMap(map);
+
+  google.maps.event.addListener(drawingManager, 'overlaycomplete', function(event) {
+    if (roofPolygon) roofPolygon.setMap(null);
+    roofPolygon = event.overlay;
+    drawingManager.setDrawingMode(null);
+  });
+}
+
+function calculateResults() {
+  if (!roofPolygon) {
+    alert('Please draw a polygon around your roof area.');
+    return;
+  }
+
+  const panelSelect = document.getElementById('panelSelect');
+  const panelWattage = parseInt(panelSelect.value);
+  const panelWidth = parseFloat(panelSelect.options[panelSelect.selectedIndex].getAttribute('data-width'));
+  const panelHeight = parseFloat(panelSelect.options[panelSelect.selectedIndex].getAttribute('data-height'));
+  const panelArea = panelWidth * panelHeight;
+
+  const path = roofPolygon.getPath().getArray().map(coord => [coord.lng(), coord.lat()]);
+  path.push(path[0]);
+  const polygon = turf.polygon([path]);
+  const area = turf.area(polygon);
+
+  const numPanels = Math.floor(area / panelArea);
+  const systemSize = (numPanels * panelWattage) / 1000;
+
+  const centroid = turf.centroid(polygon).geometry.coordinates;
+  const lon = centroid[0];
+  const lat = centroid[1];
+
+  fetch(`/api/solcast?lat=${lat}&lon=${lon}`)
+    .then(response => response.json())
+    .then(data => {
+      const dailyRadiation = data.dailyRadiation;
+      const annualRadiation = dailyRadiation * 365;
+      const annualGen = systemSize * annualRadiation;
+      const estimatedSavings = annualGen * 0.3;
+      const installationCost = systemSize * 900;
+      const paybackYears = (installationCost / estimatedSavings).toFixed(1);
+
+      document.getElementById('results').innerHTML = `
+        <h3>Results</h3>
+        <p>Number of panels: ${numPanels}</p>
+        <p>System size: ${systemSize.toFixed(1)} kWp</p>
+        <p>Estimated annual generation: ${annualGen.toFixed(0)} kWh</p>
+        <p>Estimated annual savings: £${estimatedSavings.toFixed(0)}</p>
+        <p>Estimated installation cost: £${installationCost.toFixed(0)}</p>
+        <p>Estimated payback period: ${paybackYears} years</p>
+      `;
+    })
+    .catch(err => {
+      console.error('Error fetching data:', err);
+      alert('Error fetching solar data.');
+    });
+}
+
+window.initMap = initMap;
+</script>
+
+</body>
+</html>
