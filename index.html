@@ -76,8 +76,6 @@ function initMap() {
   });
 }
 
-window.initMap = initMap; // This line ensures Google Maps can call initMap globally!
-
 function searchPostcode() {
   const postcode = document.getElementById('postcodeInput').value;
   if (!postcode) {
@@ -146,6 +144,11 @@ function calculateResults() {
       alert('Error fetching solar data.');
     });
 }
+
+// ⚠️ Make sure these functions are globally accessible
+window.initMap = initMap;
+window.searchPostcode = searchPostcode;
+window.calculateResults = calculateResults;
 </script>
 
 </body>
