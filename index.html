@@ -1,4 +1,4 @@
-
+const htmlContent = `
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -35,7 +35,7 @@
 </div>
 
 <div id="results"></div>
-  
+
 <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAppVhgKsqxYeM3ckw3pWkTimTHgPFgAt4&libraries=drawing&callback=initMap" async defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
 <script>
@@ -90,7 +90,7 @@ function calculateResults() {
   const lon = centroid[0];
   const lat = centroid[1];
 
-  fetch(`/api/solcast?lat=${lat}&lon=${lon}`)
+  fetch(\`/api/solcast?lat=\${lat}&lon=\${lon}\`)
     .then(response => response.json())
     .then(data => {
       const dailyRadiation = data.dailyRadiation;
@@ -100,24 +100,24 @@ function calculateResults() {
       const installationCost = systemSize * 900;
       const paybackYears = (installationCost / estimatedSavings).toFixed(1);
 
-      document.getElementById('results').innerHTML = `
+      document.getElementById('results').innerHTML = \`
         <h3>Results</h3>
-        <p>Number of panels: ${numPanels}</p>
-        <p>System size: ${systemSize.toFixed(1)} kWp</p>
-        <p>Estimated annual generation: ${annualGen.toFixed(0)} kWh</p>
-        <p>Estimated annual savings: £${estimatedSavings.toFixed(0)}</p>
-        <p>Estimated installation cost: £${installationCost.toFixed(0)}</p>
-        <p>Estimated payback period: ${paybackYears} years</p>
-      `;
+        <p>Number of panels: \${numPanels}</p>
+        <p>System size: \${systemSize.toFixed(1)} kWp</p>
+        <p>Estimated annual generation: \${annualGen.toFixed(0)} kWh</p>
+        <p>Estimated annual savings: £\${estimatedSavings.toFixed(0)}</p>
+        <p>Estimated installation cost: £\${installationCost.toFixed(0)}</p>
+        <p>Estimated payback period: \${paybackYears} years</p>
+      \`;
     })
     .catch(err => {
       console.error('Error fetching data:', err);
       alert('Error fetching solar data.');
     });
 }
-
-window.initMap = initMap;
 </script>
 
 </body>
 </html>
+`;
+console.log(htmlContent);
