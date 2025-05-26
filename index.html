@@ -66,6 +66,8 @@ function initMap() {
   });
 }
 
+window.initMap = initMap; // <--- This line ensures Google can call it globally!
+
 function calculateResults() {
   if (!roofPolygon) {
     alert('Please draw a polygon around your roof area.');
